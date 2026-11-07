@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="loading-screen"><div className="loading-mark">✦</div><strong>Ludo Arena</strong><span>Getting your arena ready…</span><div className="loading-bar"><i/></div></main>}
