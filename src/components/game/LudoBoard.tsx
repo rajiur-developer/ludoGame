@@ -22,7 +22,7 @@ export function LudoBoard({ players, movableTokens, activePlayerId, onMove }: { 
       const occupants = players.flatMap((player) => player.tokens.map((progress, tokenIndex) => ({ player, tokenIndex, progress, absolute: progress >= 0 && progress < 52 ? (START_OFFSETS[player.color] + progress) % 52 : -1 }))).filter((token) => token.absolute === cell);
       return <div key={cell} className={`classic-cell ${SAFE_SQUARES.has(cell) ? "safe" : ""}`}><span>{SAFE_SQUARES.has(cell) ? "★" : ""}</span>{occupants.map((token) => <button key={token.player.id + token.tokenIndex} className={`board-token ${token.player.color} ${token.player.id === activePlayerId && movableTokens.includes(token.tokenIndex) ? "token-selectable" : ""}`} onClick={() => token.player.id === activePlayerId && movableTokens.includes(token.tokenIndex) && onMove(token.tokenIndex)} aria-label={`Move ${token.player.name} token ${token.tokenIndex + 1}`} />)}</div>;
     })}</div>
-    <div className="classic-center"><span>★</span><b>LUDO</b><small>ARENA</small></div>
+    <div className="classic-center"><span>★</span><b>LUDO</b><small>ARENA</small><div className="finish-lanes">{players.map((player) => player.tokens.map((progress, tokenIndex) => progress >= 52 && progress < 57 ? <button key={player.id + tokenIndex} aria-label={`Move ${player.name} home token ${tokenIndex + 1}`} className={`finish-token ${player.color} ${player.id === activePlayerId && movableTokens.includes(tokenIndex) ? "token-selectable" : ""}`} onClick={() => player.id === activePlayerId && movableTokens.includes(tokenIndex) && onMove(tokenIndex)} /> : null))}</div></div>
     <p className="board-hint">Select a highlighted token to move it</p>
   </div>;
 }
