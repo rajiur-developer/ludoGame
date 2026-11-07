@@ -48,3 +48,9 @@
 @keyframes token-pulse{to{transform:scale(1.14)}}
 @media(max-width:800px){.offline-setup{gap:10px}.offline-setup>div:first-child{width:100%;display:flex;align-items:center;justify-content:space-between}.setup-names{flex:1}.setup-names input{flex:1;min-width:75px}.setup-start{white-space:nowrap}}
 @media(max-width:560px){.classic-board{border-width:4px;padding:4px;gap:3px;margin:12px auto}.classic-track{inset:4px;gap:1px}.classic-home{padding:4px;gap:5px}.classic-yard{padding:5px;gap:4px}.game-legend{flex-wrap:wrap}.offline-setup{padding:11px}.setup-start{width:100%}}
+
+/* Keep the play path in the board's central channel so all four home yards remain visible. */
+.classic-track{inset:34% 34%;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(4,1fr);}
+.classic-cell{font-size:7px;}
+.classic-center{left:40%;top:40%;width:20%;height:20%;}
+@media(max-width:560px){.classic-track{inset:34% 34%;}.classic-cell{border-radius:1px;}}
