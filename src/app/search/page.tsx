@@ -1,0 +1,8 @@
+"use client";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Search, ArrowUpRight } from "lucide-react";
+const pages=[["Overview","Dashboard and your player summary","/"],["Play Ludo","Choose offline, online, or practice modes","/play"],["Offline Ludo","Local pass-and-play match","/play/offline"],["Online rooms","Create or join a private room preview","/play/online"],["Friends","Your player community","/friends"],["Leaderboard","Top players and rankings","/leaderboard"],["Rewards","Arena points and achievements","/rewards"],["Profile","Your player identity","/profile"],["Settings","Language and game preferences","/settings"],["Help","Game guide and frequently asked questions","/help"]];
+export default function SearchPage(){const [query,setQuery]=useState("");const results=useMemo(()=>pages.filter(p=>p.join(" ").toLowerCase().includes(query.toLowerCase())),[query]);return <AppShell><div className="inner-page"><PageHeader eyebrow="FIND YOUR WAY" title="Search Ludo Arena" description="Quickly find a page, game mode, or feature."/><div className="large-search"><Search size={20}/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Try “offline game” or “rewards”…"/></div><span className="section-kicker">{query?results.length+" RESULTS":"QUICK LINKS"}</span><div className="search-results">{results.map(p=><Link href={p[2]} key={p[2]} className="search-result"><div><strong>{p[0]}</strong><small>{p[1]}</small></div><ArrowUpRight size={17}/></Link>)}{results.length===0&&<p className="empty-search">No pages found. Try a different keyword.</p>}</div></div></AppShell>}
