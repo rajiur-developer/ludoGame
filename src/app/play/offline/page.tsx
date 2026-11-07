@@ -3,19 +3,60 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { RotateCcw, Dices, Trophy, Users, Volume2, VolumeX } from "lucide-react";
+import { LudoBoard } from "@/components/game/LudoBoard";
+import { createGame, currentPlayer, getMovableTokens, moveToken, rollDice } from "@/lib/ludo/engine";
+import { Dices, RotateCcw, Trophy, Users, ArrowLeft, Plus, Minus } from "lucide-react";
 
-type Player={name:string;color:string;position:number;finished:boolean};
-const colors=["red","green","yellow","blue"];
-const start=[0,13,26,39];
-const track=Array.from({length:52},(_,i)=>i);
-export default function OfflineGamePage(){
- const [players,setPlayers]=useState<Player[]>([{name:"Player 1",color:"red",position:-1,finished:false},{name:"Player 2",color:"green",position:-1,finished:false}]);
- const [turn,setTurn]=useState(0); const [dice,setDice]=useState<number|null>(null); const [message,setMessage]=useState("Roll the dice to begin your turn."); const [rolling,setRolling]=useState(false); const [sound,setSound]=useState(true); const [winner,setWinner]=useState<string|null>(null);
- const current=players[turn]; const canMove=dice!==null;
- const roll=()=>{if(rolling||winner)return;setRolling(true);const value=Math.floor(Math.random()*6)+1;window.setTimeout(()=>{setDice(value);setRolling(false);setMessage(value===6?"A six! Bring a token out or move one.":"Choose one of your available tokens.");},350)};
- const move=()=>{if(!canMove||winner)return;const next=[...players];const p=next[turn];if(p.position<0){if(dice!==6){setMessage("You need a 6 to bring a token onto the board.");setDice(null);setTurn((turn+1)%players.length);return;}p.position=0;}else{const progress=p.position+dice!;if(progress>56){setMessage("You need an exact roll to finish.");setDice(null);return;}p.position=progress;if(progress===56){p.finished=true;setWinner(p.name);}}setPlayers(next);if(!winner){if(dice!==6)setTurn((turn+1)%players.length);setMessage(dice===6?"Six! Roll again.":"Move completed. Next player's turn.");}setDice(null)};
- const reset=()=>{setPlayers(players.map(p=>({...p,position:-1,finished:false})));setTurn(0);setDice(null);setWinner(null);setMessage("New game started. Player 1 rolls first.")};
- const tokens=useMemo(()=>players.map(p=>({...p,trackIndex:p.position<0?-1:(start[colors.indexOf(p.color)]+p.position)%52})),[players]);
- return <AppShell><div className="inner-page game-page"><PageHeader eyebrow="LOCAL MATCH" title="Offline Ludo" description="A friendly pass-and-play game for 2 players on this device."/><div className="game-layout"><section className="game-board-panel"><div className="game-board-top"><span className="mini-badge"><span/> LOCAL GAME</span><button className="subtle-button" onClick={()=>setSound(!sound)}>{sound?<Volume2 size={16}/>:<VolumeX size={16}/>} Sound {sound?"on":"off"}</button></div><div className="play-board"><div className="board-home home-red"><b>PLAYER 1</b><div className="home-slots"><i/><i/><i/><i/></div></div><div className="board-home home-green"><b>PLAYER 2</b><div className="home-slots"><i/><i/><i/><i/></div></div><div className="board-home home-blue"><b>PLAYER 4</b><div className="home-slots"><i/><i/><i/><i/></div></div><div className="board-home home-yellow"><b>PLAYER 3</b><div className="home-slots"><i/><i/><i/><i/></div></div><div className="board-track">{track.map(i=><span key={i} className={`track-space ${[0,8,13,21,26,34,39,47].includes(i)?"track-safe":""}`}>{[0,13,26,39].includes(i)?"★":""}{tokens.filter(p=>p.trackIndex===i).map(p=><i key={p.color} className={`track-token ${p.color}`}/>)}</span>)}</div><div className="board-center-label">LUDO<br/><small>ARENA</small></div></div><div className="game-legend"><span><i className="legend-dot red"/> Player 1</span><span><i className="legend-dot green"/> Player 2</span></div></section><aside className="game-control-panel"><span className="section-kicker">MATCH CONTROL</span><h2>{winner?"Match complete":`${current.name}'s turn`}</h2><div className="turn-indicator"><span className={`turn-avatar ${current.color}`}>{current.name.slice(-1)}</span><div><strong>{current.name}</strong><small>{current.color.toUpperCase()} PLAYER</small></div><span className="turn-pill">YOUR TURN</span></div><div className={`dice-display ${rolling?"dice-rolling":""}`}><span>{dice??"?"}</span><small>{dice?"DICE RESULT":"ROLL TO PLAY"}</small></div><button className="roll-button" onClick={roll} disabled={rolling||dice!==null||!!winner}><Dices size={19}/>{rolling?"Rolling…":"Roll the dice"}</button><button className="move-button" onClick={move} disabled={!canMove||!!winner}>Move token</button><p className="game-message" role="status">{winner?<><Trophy size={16}/> {winner} wins this practice match!</>:message}</p><div className="player-score-list">{players.map((p,i)=><div key={p.color} className="player-score"><span className={`legend-dot ${p.color}`}/><span>{p.name}</span><strong>{p.finished?"Finished":p.position<0?"Home":`Step ${p.position}/56`}</strong></div>)}</div><button className="reset-button" onClick={reset}><RotateCcw size={15}/> Restart match</button><Link href="/play" className="back-to-modes"><Users size={15}/> Change game mode</Link></aside></div><p className="game-disclaimer">Prototype rules: this local demo shows turn flow and token progress. Full classic Ludo path, safe-square capture, and four-player rules are part of the next game-engine iteration.</p></div></AppShell>
+export default function OfflineGamePage() {
+  const [playerCount, setPlayerCount] = useState(2);
+  const [names, setNames] = useState(["Player 1", "Player 2", "Player 3", "Player 4"]);
+  const [game, setGame] = useState(() => createGame(2));
+  const [rolling, setRolling] = useState(false);
+  const active = currentPlayer(game);
+  const movable = useMemo(() => getMovableTokens(game), [game]);
+  const startNewGame = () => setGame(createGame(playerCount, names.slice(0, playerCount)));
+  const roll = () => {
+    if (rolling || game.dice !== null || game.winner) return;
+    setRolling(true);
+    window.setTimeout(() => {
+      setGame((previous) => rollDice(previous));
+      setRolling(false);
+    }, 450);
+  };
+  const selectToken = (index: number) => {
+    const result = moveToken(game, index);
+    if (result.state !== game) setGame(result.state);
+  };
+  const passTurn = () => setGame((previous) => ({ ...previous, dice: null, consecutiveSixes: 0, currentPlayer: (previous.currentPlayer + 1) % previous.players.length, message: "No legal move. Turn passed to the next player." }));
+  const tokenCount = (tokens: number[]) => tokens.filter((position) => position === 57).length;
+
+  return <AppShell><div className="inner-page game-page">
+    <PageHeader eyebrow="LOCAL MATCH" title="Offline Ludo" description="Play classic-style Ludo with 2–4 players on one device. No internet connection required."/>
+    <div className="offline-setup">
+      <div><span className="section-kicker">MATCH SETUP</span><strong>Players</strong></div>
+      <div className="player-count-control"><button aria-label="Decrease players" onClick={() => setPlayerCount((n) => Math.max(2, n - 1))} disabled={playerCount === 2}><Minus size={15}/></button><b>{playerCount}</b><button aria-label="Increase players" onClick={() => setPlayerCount((n) => Math.min(4, n + 1))} disabled={playerCount === 4}><Plus size={15}/></button></div>
+      <div className="setup-names">{names.slice(0, playerCount).map((name, index) => <input key={index} aria-label={`Player ${index + 1} name`} value={name} maxLength={16} onChange={(event) => setNames((previous) => previous.map((item, i) => i === index ? event.target.value : item))}/>)}</div>
+      <button className="setup-start" onClick={startNewGame}>Start new match</button>
+    </div>
+    <div className="game-layout">
+      <section className="game-board-panel">
+        <div className="game-board-top"><span className="mini-badge"><span/> LOCAL MATCH</span><span className="board-player-count"><Users size={14}/> {game.players.length} players</span></div>
+        <LudoBoard players={game.players} movableTokens={movable} activePlayerId={active.id} onMove={selectToken}/>
+        <div className="game-legend">{game.players.map((player) => <span key={player.id}><i className={`legend-dot ${player.color}`}/>{player.name}</span>)}</div>
+      </section>
+      <aside className="game-control-panel">
+        <span className="section-kicker">MATCH CONTROL</span>
+        <h2>{game.winner ? "Match complete" : `${active.name}'s turn`}</h2>
+        <div className="turn-indicator"><span className={`turn-avatar ${active.color}`}>{active.name.slice(0,1).toUpperCase()}</span><div><strong>{active.name}</strong><small>{active.color.toUpperCase()} PLAYER</small></div><span className="turn-pill">ACTIVE</span></div>
+        <div className={`dice-display ${rolling ? "dice-rolling" : ""}`}><span>{game.dice ?? "?"}</span><small>{game.dice ? "DICE RESULT" : "ROLL TO PLAY"}</small></div>
+        <button className="roll-button" onClick={roll} disabled={rolling || game.dice !== null || !!game.winner}><Dices size={19}/>{rolling ? "Rolling…" : "Roll the dice"}</button>
+        {game.dice !== null && movable.length === 0 && <button className="move-button" onClick={passTurn}>No move — pass turn</button>}
+        <p className="game-message" role="status">{game.winner ? <><Trophy size={16}/> {game.winner} wins this match!</> : game.message}</p>
+        <div className="player-score-list">{game.players.map((player) => <div className="player-score" key={player.id}><span className={`legend-dot ${player.color}`}/><span>{player.name}</span><strong>{tokenCount(player.tokens)}/4 home</strong></div>)}</div>
+        <button className="reset-button" onClick={startNewGame}><RotateCcw size={15}/> Restart match</button>
+        <Link href="/play" className="back-to-modes"><ArrowLeft size={15}/> Change game mode</Link>
+      </aside>
+    </div>
+    <div className="game-rules-note"><strong>How to play</strong><span>Roll a 6 to bring a token out. Select a highlighted token to move. Land on an opponent to send their token home. Safe squares protect tokens. Reach the finish with an exact roll. Three consecutive sixes pass your turn.</span></div>
+  </div></AppShell>;
 }
