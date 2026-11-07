@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Bot, Brain, Clock3, Sparkles } from "lucide-react";
+export default function BotPage(){return <AppShell><div className="inner-page"><PageHeader eyebrow="PRACTICE MODE" title="Practice with a bot" description="A relaxed space to learn the game before inviting your friends."/><div className="bot-preview-card"><div className="bot-orb"><Bot size={42}/><Sparkles size={17}/></div><span className="section-kicker">COMING IN A FUTURE UPDATE</span><h2>Your practice partner is getting ready.</h2><p>Bot difficulty, turn logic, and a complete rules engine will be added after the local multiplayer game is complete.</p><div className="bot-features"><span><Brain size={16}/> Beginner-friendly levels</span><span><Clock3 size={16}/> Play at your own pace</span></div><Link href="/play/offline" className="primary-action">Try offline mode</Link></div></div></AppShell>}
